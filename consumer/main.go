@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/rizkysr90/learn_rabbit_mq_client_golang/pkg/rabbitmq"
@@ -21,21 +20,24 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	amqpChannel.Qos(1, 1, true)
 	ctx := context.Background()
 	emailConsumer, err := amqpChannel.ConsumeWithContext(ctx,
-		"email", "consumer-email", true, false, false, false, nil)
+		"email", "consumer-email", false, false, false, false, nil)
 	log.Println("Launch email consumer")
 	if err != nil {
 		panic(err)
 	}
 	for message := range emailConsumer {
+		// dotCount := bytes.Count(message.Body, []byte{'.'})
+		time.Sleep(5 * time.Second)
 		println("Routing Key: " + message.RoutingKey)
 		println("Body: " + string(message.Body))
-		// Specify the file path
-		splitMessage := strings.Split(string(message.Body), " ")
+		// splitMessage := strings.Split(string(message.Body), " ")
 		// Specify the folder path
 		folderPath := "./results"
-		fileName := fmt.Sprintf("%v_%v.txt", splitMessage[0], time.Now().UTC().Unix())
+		fileName := fmt.Sprintf("HelloWorld_%v.txt", time.Now().UTC().Unix())
+		// Specify the file path
 		filePath := filepath.Join(folderPath, fileName)
 		// Create the folder if it doesn't exist
 		if err := os.MkdirAll(folderPath, 0755); err != nil {
@@ -50,6 +52,8 @@ func main() {
 			fmt.Println("Error opening file:", err)
 			return
 		}
+		amqpChannel.Ack(message.DeliveryTag, false)
+
 		defer file.Close()
 
 		// Write the string content to the file
